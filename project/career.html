@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Career Tracker</title>
+  <style>
+    body {
+      background-color: #0d0d0d;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      color: #00ff99;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+    select, button, input[type="radio"], input[type="number"] {
+      margin: 0.5rem 0;
+    }
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0.5rem 0;
+    }
+    .score {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      color: #00ff99;
+    }
+    .badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    .below {
+      background-color: #ff4d4d;
+      color: white;
+    }
+    .ontrack {
+      background-color: #0099ff;
+      color: white;
+    }
+    .above {
+      background-color: #00cc66;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Career Tracker</h1>
+
+  <!-- Job Role Selection -->
+  <label for="jobRole">Select Your Job Role:</label>
+  <select id="jobRole">
+    <option value="10" data-range="5000-10000">Intern</option>
+    <option value="20" data-range="10000-20000">Junior Analyst / Entry Level</option>
+    <option value="30" data-range="20000-35000">Analyst / Associate</option>
+    <option value="40" data-range="35000-50000">Mid-Level Professional</option>
+    <option value="50" data-range="50000-70000">Senior Analyst / Senior Engineer</option>
+    <option value="60" data-range="70000-100000">Lead / Team Lead</option>
+    <option value="70" data-range="100000-150000">Manager</option>
+    <option value="80" data-range="150000-200000">Senior Manager</option>
+    <option value="90" data-range="200000-300000">Director / Head of Dept</option>
+    <option value="100" data-range="300000-500000">VP / C-Level</option>
+  </select>
+
+  <!-- Job Satisfaction -->
+  <label>Job Satisfaction (1-10):</label>
+  <div class="radio-group" id="satisfactionGroup"></div>
+
+  <!-- Salary Input -->
+  <label for="salary">Your Monthly Salary (INR):</label>
+  <input type="number" id="salary" placeholder="e.g., 40000" />
+
+  <!-- Button -->
+  <button onclick="saveCareerData()">Save Career Score</button>
+
+  <!-- Score Display -->
+  <div class="score">
+    Career Score: <span id="careerScore">0</span> / 100
+    <span id="salaryComparison" class="badge"></span>
+  </div>
+
+  <script>
+    const satisfactionGroup = document.getElementById("satisfactionGroup");
+
+    // Populate radio buttons 1-10
+    for (let i = 1; i <= 10; i++) {
+      const label = document.createElement("label");
+      label.innerHTML = `
+        <input type="radio" name="satisfaction" value="${i}"> ${i}
+      `;
+      satisfactionGroup.appendChild(label);
+    }
+
+    function saveCareerData() {
+      const jobRoleSelect = document.getElementById("jobRole");
+      const jobRoleScore = parseInt(jobRoleSelect.value);
+      const satisfactionValue = document.querySelector('input[name="satisfaction"]:checked');
+      const salaryInput = document.getElementById("salary").value.trim();
+      const badge = document.getElementById("salaryComparison");
+
+      if (!satisfactionValue || !salaryInput) {
+        alert("Please select satisfaction rating and enter your salary.");
+        return;
+      }
+
+      const satisfactionScore = parseInt(satisfactionValue.value) * 10;
+
+      const selectedOption = jobRoleSelect.options[jobRoleSelect.selectedIndex];
+      const [minSalary, maxSalary] = selectedOption.dataset.range.split('-').map(Number);
+      const currentSalary = parseInt(salaryInput);
+
+      let salaryStatus = "";
+      let className = "";
+      let salaryScore = 0;
+
+      if (currentSalary < minSalary) {
+        salaryStatus = "🔻 Below Average";
+        className = "below";
+        salaryScore = 60;
+      } else if (currentSalary >= minSalary && currentSalary <= maxSalary) {
+        salaryStatus = "✅ On Track";
+        className = "ontrack";
+        salaryScore = 80;
+      } else {
+        salaryStatus = "🔺 Above Average";
+        className = "above";
+        salaryScore = 100;
+      }
+
+      const careerScore = Math.round((jobRoleScore + satisfactionScore + salaryScore) / 3);
+      document.getElementById("careerScore").textContent = careerScore;
+      badge.textContent = salaryStatus;
+      badge.className = `badge ${className}`;
+
+      const data = {
+        jobRoleScore,
+        satisfaction: satisfactionValue.value,
+        salary: currentSalary,
+        careerScore
+      };
+      localStorage.setItem('careerData', JSON.stringify(data));
+    }
+
+    // Load saved values on page load
+    window.onload = () => {
+      const data = JSON.parse(localStorage.getItem('careerData'));
+      if (data) {
+        document.getElementById("jobRole").value = data.jobRoleScore;
+        document.querySelector(`input[name="satisfaction"][value="${data.satisfaction}"]`).checked = true;
+        document.getElementById("salary").value = data.salary;
+        saveCareerData(); // triggers visual update + badge
+      }
+    };
+  </script>
+</body>
+</html>
