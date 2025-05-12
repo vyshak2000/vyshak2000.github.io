@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mental Health Quiz</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #f9f9f9;
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    .question {
+      margin-bottom: 1rem;
+    }
+    label, input, button {
+      display: block;
+      margin: 1rem auto;
+      width: 100%;
+      max-width: 400px;
+    }
+    input[type="radio"] {
+      margin-right: 0.5rem;
+    }
+    button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      background-color: #222;
+      border: 1px solid #444;
+      color: white;
+    }
+    button:hover {
+      background-color: #333;
+    }
+    .result {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Mental Health Quiz</h1>
+
+  <form id="mentalHealthForm">
+    <!-- Mood Assessment -->
+    <div class="question">
+      <label>How often have you felt happy in the past week?</label>
+      <label><input type="radio" name="mood" value="1"> Never</label>
+      <label><input type="radio" name="mood" value="2"> Rarely</label>
+      <label><input type="radio" name="mood" value="3"> Sometimes</label>
+      <label><input type="radio" name="mood" value="4"> Often</label>
+      <label><input type="radio" name="mood" value="5"> Always</label>
+    </div>
+
+    <!-- Stress Levels -->
+    <div class="question">
+      <label>How often do you feel overwhelmed by your daily tasks?</label>
+      <label><input type="radio" name="stress" value="1"> Never</label>
+      <label><input type="radio" name="stress" value="2"> Rarely</label>
+      <label><input type="radio" name="stress" value="3"> Sometimes</label>
+      <label><input type="radio" name="stress" value="4"> Often</label>
+      <label><input type="radio" name="stress" value="5"> Always</label>
+    </div>
+
+    <!-- Sleep Quality -->
+    <div class="question">
+      <label>How would you rate the quality of your sleep over the past week?</label>
+      <label><input type="radio" name="sleep" value="1"> Very Poor</label>
+      <label><input type="radio" name="sleep" value="2"> Poor</label>
+      <label><input type="radio" name="sleep" value="3"> Average</label>
+      <label><input type="radio" name="sleep" value="4"> Good</label>
+      <label><input type="radio" name="sleep" value="5"> Excellent</label>
+    </div>
+
+    <!-- Social Support -->
+    <div class="question">
+      <label>How often do you feel supported by friends or family?</label>
+      <label><input type="radio" name="support" value="1"> Never</label>
+      <label><input type="radio" name="support" value="2"> Rarely</label>
+      <label><input type="radio" name="support" value="3"> Sometimes</label>
+      <label><input type="radio" name="support" value="4"> Often</label>
+      <label><input type="radio" name="support" value="5"> Always</label>
+    </div>
+
+    <!-- Self-Care -->
+    <div class="question">
+      <label>How often do you engage in activities that relax or rejuvenate you?</label>
+      <label><input type="radio" name="selfcare" value="1"> Never</label>
+      <label><input type="radio" name="selfcare" value="2"> Rarely</label>
+      <label><input type="radio" name="selfcare" value="3"> Sometimes</label>
+      <label><input type="radio" name="selfcare" value="4"> Often</label>
+      <label><input type="radio" name="selfcare" value="5"> Always</label>
+    </div>
+
+    <button type="button" onclick="calculateMentalHealthScore()">Submit</button>
+  </form>
+
+  <div class="result">
+    Mental Health Score: <span id="mentalHealthScore">0</span> / 100
+  </div>
+
+  <script>
+    function calculateMentalHealthScore() {
+      const form = document.forms['mentalHealthForm'];
+      let totalScore = 0;
+      let numQuestions = 5; // Total number of questions
+
+      // Loop through all the questions
+      for (let i = 0; i < numQuestions; i++) {
+        const questionName = form.elements[i].name; // Get question name
+        const selectedOption = form.querySelector(`input[name="${questionName}"]:checked`); // Get the checked radio button
+        
+        if (selectedOption) {
+          totalScore += parseInt(selectedOption.value); // Add the value of the selected radio button to the score
+        }
+      }
+
+      // Calculate the score out of 100
+      const score = (totalScore / (numQuestions * 5)) * 100;
+      document.getElementById('mentalHealthScore').textContent = score.toFixed(2);
+    }
+  </script>
+
+</body>
+</html>

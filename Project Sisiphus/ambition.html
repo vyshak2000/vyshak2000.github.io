@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Habit Tracker (Dark Mode)</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-color: #1e1e1e;
+      --text-color: #e0e0e0;
+      --accent-color: #bb86fc;
+      --primary-color: #03dac6;
+      --danger-color: #cf6679;
+      --border-color: #333;
+      --star-color: #FFD700;
+      --star-inactive: #444;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+    
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+    }
+    
+    .habit-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    #newHabit, #deadlineDate {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: var(--card-color);
+      color: var(--text-color);
+    }
+    
+    #newHabit {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    button {
+      padding: 10px 15px;
+      background-color: var(--primary-color);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    button:hover {
+      background-color: var(--accent-color);
+    }
+    
+    .delete-btn {
+      background-color: var(--danger-color);
+      color: white;
+    }
+    
+    .delete-btn:hover {
+      background-color: #b00020;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: var(--card-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    th {
+      background-color: #2a2a2a;
+      color: var(--primary-color);
+    }
+    
+    .streak {
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    .completion-checkbox {
+      transform: scale(1.3);
+      accent-color: var(--primary-color);
+    }
+    
+    .deadline {
+      font-weight: bold;
+    }
+    
+    .deadline.urgent {
+      color: var(--danger-color);
+    }
+    
+    .deadline.upcoming {
+      color: #FF9800;
+    }
+    
+    .deadline.future {
+      color: var(--accent-color);
+    }
+    
+    .stars {
+      display: flex;
+      justify-content: center;
+    }
+    
+    .star {
+      font-size: 20px;
+      color: var(--star-inactive);
+      cursor: pointer;
+    }
+    
+    .star.selected {
+      color: var(--star-color);
+    }
+    
+    #ambitionScore {
+      background-color: var(--card-color);
+      color: var(--primary-color);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 20px 0;
+      font-size: 1.2em;
+      border: 1px solid var(--border-color);
+    }
+    
+    tr:hover {
+      background-color: #2a2a2a;
+    }
+    
+    /* Dark mode scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-color);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-color);
+    }
+  </style>
+</head>
+<body>
+  <h1>Smart Habit Tracker</h1>
+  
+  <div id="ambitionScore">Ambition Score: 0%</div>
+  
+  <div class="habit-form">
+    <input type="text" id="newHabit" placeholder="Enter a new habit">
+    <input type="date" id="deadlineDate">
+    <div class="stars" id="ratingStars">
+      <span class="star" data-value="1">★</span>
+      <span class="star" data-value="2">★</span>
+      <span class="star" data-value="3">★</span>
+      <span class="star" data-value="4">★</span>
+      <span class="star" data-value="5">★</span>
+    </div>
+    <button onclick="addHabit()">Add Habit</button>
+  </div>
+  
+  <table id="habitsTable">
+    <thead>
+      <tr>
+        <th>Habit</th>
+        <th>Priority</th>
+        <th>Deadline</th>
+        <th>Today</th>
+        <th>Streak</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="habitsList"></tbody>
+  </table>
+
+  <script>
+    // Load data from localStorage
+    let habits = JSON.parse(localStorage.getItem('habits')) || [];
+    let completions = JSON.parse(localStorage.getItem('completions')) || {};
+    let selectedRating = 1;
+
+    // Initialize star rating
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        document.querySelectorAll('.star').forEach(s => 
+          s.classList.remove('selected'));
+        star.classList.add('selected');
+        selectedRating = parseInt(star.dataset.value);
+      });
+    });
+    document.querySelector('.star').classList.add('selected');
+
+    // Initialize
+    renderHabits();
+    updateAmbitionScore();
+
+    // Add a new habit with deadline and rating
+    function addHabit() {
+      const input = document.getElementById('newHabit');
+      const deadlineInput = document.getElementById('deadlineDate');
+      const habitName = input.value.trim();
+      const deadline = deadlineInput.value;
+      
+      if (habitName) {
+        habits.push({
+          name: habitName,
+          deadline: deadline || null,
+          points: selectedRating,
+          completed: false
+        });
+        
+        sortHabits();
+        localStorage.setItem('habits', JSON.stringify(habits));
+        input.value = '';
+        deadlineInput.value = '';
+        renderHabits();
+        updateAmbitionScore();
+      }
+    }
+
+    // Toggle habit completion
+    function toggleCompletion(index) {
+      const today = new Date().toDateString();
+      const habit = habits[index];
+      
+      if (!completions[habit.name]) {
+        completions[habit.name] = { lastCompleted: null, streak: 0 };
+      }
+      
+      const completion = completions[habit.name];
+      
+      if (completion.lastCompleted === today) {
+        // Unchecking
+        completion.lastCompleted = null;
+        habit.completed = false;
+      } else {
+        // Check if continuing streak
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (completion.lastCompleted === yesterday.toDateString()) {
+          completion.streak++;
+        } else if (completion.lastCompleted !== today) {
+          completion.streak = 1;
+        }
+        completion.lastCompleted = today;
+        habit.completed = true;
+      }
+      
+      localStorage.setItem('habits', JSON.stringify(habits));
+      localStorage.setItem('completions', JSON.stringify(completions));
+      renderHabits();
+      updateAmbitionScore();
+    }
+
+    // Delete a habit
+    function deleteHabit(index) {
+      const habitName = habits[index].name;
+      habits.splice(index, 1);
+      delete completions[habitName];
+      localStorage.setItem('habits', JSON.stringify(habits));
+      localStorage.setItem('completions', JSON.stringify(completions));
+      renderHabits();
+      updateAmbitionScore();
+    }
+
+    // Get deadline status
+    function getDeadlineStatus(deadline) {
+      if (!deadline) return '';
+      
+      const today = new Date();
+      const deadlineDate = new Date(deadline);
+      const diffDays = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return 'overdue';
+      if (diffDays === 0) return 'urgent';
+      if (diffDays <= 3) return 'upcoming';
+      return 'future';
+    }
+
+    // Sort habits by deadline and priority
+    function sortHabits() {
+      habits.sort((a, b) => {
+        // First sort by completion status (uncompleted first)
+        if (a.completed && !b.completed) return 1;
+        if (!a.completed && b.completed) return -1;
+        
+        // Then sort by deadline (soonest first)
+        if (!a.deadline && b.deadline) return 1;
+        if (a.deadline && !b.deadline) return -1;
+        if (a.deadline && b.deadline) {
+          return new Date(a.deadline) - new Date(b.deadline);
+        }
+        
+        // Finally sort by priority (higher points first)
+        return b.points - a.points;
+      });
+    }
+
+    // Update ambition score
+    function updateAmbitionScore() {
+      const today = new Date();
+      let totalPoints = 0;
+      let completedPoints = 0;
+      
+      habits.forEach(habit => {
+        // Only count points if past deadline or completed
+        const deadlinePassed = habit.deadline && new Date(habit.deadline) < today;
+        
+        if (deadlinePassed || habit.completed) {
+          totalPoints += habit.points;
+          if (habit.completed) {
+            completedPoints += habit.points;
+          }
+        }
+      });
+      
+      const score = totalPoints > 0 ? (completedPoints / totalPoints) * 100 : 0;
+      document.getElementById('ambitionScore').innerText = 
+        `Ambition Score: ${score.toFixed(1)}% (${completedPoints}/${totalPoints} points)`;
+    }
+
+    // Render all habits
+    function renderHabits() {
+      const today = new Date().toDateString();
+      const habitsList = document.getElementById('habitsList');
+      habitsList.innerHTML = '';
+
+      sortHabits();
+
+      habits.forEach((habit, index) => {
+        const row = document.createElement('tr');
+        const completion = completions[habit.name] || { lastCompleted: null, streak: 0 };
+        const isCompletedToday = completion.lastCompleted === today;
+        const deadlineStatus = getDeadlineStatus(habit.deadline);
+        const deadlineClass = deadlineStatus ? `deadline ${deadlineStatus}` : '';
+        
+        // Show stars for priority
+        const starsHtml = Array(5).fill('').map((_, i) => 
+          `<span style="color: ${i < habit.points ? 'var(--star-color)' : 'var(--star-inactive)'}">★</span>`
+        ).join('');
+        
+        row.innerHTML = `
+          <td>${habit.name}</td>
+          <td>${starsHtml}</td>
+          <td class="${deadlineClass}">
+            ${habit.deadline ? new Date(habit.deadline).toLocaleDateString() : 'No deadline'}
+          </td>
+          <td>
+            <input type="checkbox" class="completion-checkbox" 
+                   ${isCompletedToday ? 'checked' : ''}
+                   onchange="toggleCompletion(${index})">
+          </td>
+          <td class="streak">${completion.streak} day${completion.streak !== 1 ? 's' : ''}</td>
+          <td><button class="delete-btn" onclick="deleteHabit(${index})">Delete</button></td>
+        `;
+        habitsList.appendChild(row);
+      });
+    }
+  </script>
+</body>
+</html>

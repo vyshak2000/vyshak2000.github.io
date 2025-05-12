@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certification Score Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #f9f9f9;
+      padding: 2rem;
+    }
+    h1, h2, h3 {
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    th {
+      background-color: #4f46e5;
+      color: white;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      background-color: #222;
+      color: white;
+      border: 1px solid #555;
+    }
+    button:hover {
+      background-color: #333;
+    }
+    .form-section {
+      max-width: 600px;
+      margin: auto;
+      text-align: center;
+    }
+    .dynamic-table {
+      margin-top: 1rem;
+    }
+    .score-section h3 {
+      margin: 1rem 0;
+      font-size: 1.25rem;
+      color: #4ade80;
+    }
+    .highlight {
+      font-size: 1.5rem;
+      color: #facc15;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Certification Weightage Tiers</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Tier</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Fixed Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>0</td><td>Beginner</td><td>Entry-level awareness, minimal hands-on (e.g., Cisco CyberOps Intro, Security Blue Team Level 1)</td><td>2</td></tr>
+      <tr><td>1</td><td>Foundational</td><td>Basics with practical exposure (e.g., CompTIA Security+, Google Cybersecurity Cert)</td><td>5</td></tr>
+      <tr><td>2</td><td>Core</td><td>Well-rounded knowledge and some hands-on (e.g., CEH, eJPT, HTB CPTS)</td><td>10</td></tr>
+      <tr><td>3</td><td>Intermediate</td><td>Deep practical skills and challenge-based (e.g., PNPT, eCPPT, HTB Certified SOC Analyst)</td><td>20</td></tr>
+      <tr><td>4</td><td>Advanced</td><td>Red/Blue team expert-level practical certs (e.g., OSCP, CRTO, GCIA, Azure SC-200)</td><td>35</td></tr>
+      <tr><td>5</td><td>Elite</td><td>Highly respected, extremely difficult (e.g., OSCE, OSEP, GXPN, CRTP, LPT Master)</td><td>50</td></tr>
+      <tr><td>6</td><td>Legendary</td><td>Industry-defining or multi-cert elite status (e.g., OSCE3, dual OSCP+OSEP, custom SANS combo)</td><td>75</td></tr>
+    </tbody>
+  </table>
+
+  <div class="form-section">
+    <h2>Add New Certification</h2>
+    <input type="text" id="certName" placeholder="Certification Name" />
+    <input type="number" id="certScore" placeholder="Score" min="0" />
+    <button onclick="addCertification()">Add</button>
+
+    <h3>Stored Certifications</h3>
+    <table class="dynamic-table" id="certTable"></table>
+
+    <div class="score-section">
+      <h3>CERT SCORE: <span id="certScoreDisplay">0</span></h3>
+      <h3>HTB SCORE: <span id="htbScoreDisplay">0</span></h3>
+      <h3>HTB RANK SCORE: <span id="htbRankScoreDisplay">0</span></h3>
+      <div class="highlight">HACKER SCORE: <span id="hackerScoreDisplay">0</span></div>
+    </div>
+
+    <h2>HTB Leaderboard Score</h2>
+    <input type="number" id="htbPosition" placeholder="Your Position" />
+    <input type="number" id="htbTotal" placeholder="Total Players" />
+    <button onclick="calculateHTB()">Calculate HTB Score</button>
+
+    <h2>Select Your HTB Rank</h2>
+    <form id="rankForm">
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Score</th><th>Select</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Noob</td><td>0</td><td><input type="radio" name="rank" value="0"></td></tr>
+          <tr><td>Script Kiddie</td><td>10</td><td><input type="radio" name="rank" value="10"></td></tr>
+          <tr><td>Hacker</td><td>20</td><td><input type="radio" name="rank" value="20"></td></tr>
+          <tr><td>Pro Hacker</td><td>30</td><td><input type="radio" name="rank" value="30"></td></tr>
+          <tr><td>Elite Hacker</td><td>40</td><td><input type="radio" name="rank" value="40"></td></tr>
+          <tr><td>Guru</td><td>50</td><td><input type="radio" name="rank" value="50"></td></tr>
+          <tr><td>Omniscient</td><td>60</td><td><input type="radio" name="rank" value="60"></td></tr>
+        </tbody>
+      </table>
+      <button type="button" onclick="updateHTBRankScore()">Set HTB Rank Score</button>
+    </form>
+  </div>
+
+  <script>
+    let scoreData = {
+      htb: 0,
+      htbRank: 0,
+      certifications: {},
+      certScore: 0
+    };
+
+    if (localStorage.getItem('scoreData')) {
+      scoreData = JSON.parse(localStorage.getItem('scoreData'));
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('scoreData', JSON.stringify(scoreData));
+    }
+
+    function displayCerts() {
+      const table = document.getElementById('certTable');
+      table.innerHTML = '<tr><th>Certification</th><th>Score</th><th>Actions</th></tr>';
+      for (let [cert, score] of Object.entries(scoreData.certifications)) {
+        const row = `<tr><td>${cert}</td><td>${score}</td><td>
+          <button onclick="editCert('${cert}')">Edit</button>
+          <button onclick="removeCert('${cert}')">Remove</button>
+        </td></tr>`;
+        table.innerHTML += row;
+      }
+      updateCertScore();
+    }
+
+    function updateCertScore() {
+      const scores = Object.values(scoreData.certifications);
+      const highest = Math.max(...scores, 0);
+      const count = scores.length;
+      const finalScore = highest + count;
+      scoreData.certScore = finalScore;
+      document.getElementById('certScoreDisplay').textContent = finalScore;
+      updateHackerScore();
+      saveToLocalStorage();
+    }
+
+    function addCertification() {
+      const name = document.getElementById('certName').value.trim();
+      const score = parseInt(document.getElementById('certScore').value);
+      if (name && !isNaN(score)) {
+        scoreData.certifications[name] = score;
+        displayCerts();
+        document.getElementById('certName').value = '';
+        document.getElementById('certScore').value = '';
+        saveToLocalStorage();
+      } else {
+        alert('Please enter a valid name and score');
+      }
+    }
+
+    function editCert(cert) {
+      const newScore = prompt(`Enter new score for ${cert}:`, scoreData.certifications[cert]);
+      if (newScore !== null) {
+        const num = parseInt(newScore);
+        if (!isNaN(num)) {
+          scoreData.certifications[cert] = num;
+          displayCerts();
+          saveToLocalStorage();
+        }
+      }
+    }
+
+    function removeCert(cert) {
+      delete scoreData.certifications[cert];
+      displayCerts();
+      saveToLocalStorage();
+    }
+
+    function calculateHTB() {
+      const position = parseInt(document.getElementById('htbPosition').value);
+      const total = parseInt(document.getElementById('htbTotal').value);
+      if (!isNaN(position) && !isNaN(total) && total > 0) {
+        scoreData.htb = Math.max(0, Math.min(100, 100 - (position / total * 100)));
+        document.getElementById('htbScoreDisplay').textContent = scoreData.htb.toFixed(2);
+        updateHackerScore();
+        saveToLocalStorage();
+      } else {
+        alert("Enter valid HTB position and total players.");
+      }
+    }
+
+    function updateHTBRankScore() {
+      const rankRadios = document.querySelectorAll('input[name="rank"]');
+      rankRadios.forEach(radio => {
+        if (radio.checked) {
+          scoreData.htbRank = parseInt(radio.value);
+        }
+      });
+      document.getElementById('htbRankScoreDisplay').textContent = scoreData.htbRank;
+      updateHackerScore();
+      saveToLocalStorage();
+    }
+
+    function updateHackerScore() {
+      const hackerScore = (scoreData.htb + scoreData.htbRank + scoreData.certScore) / 3;
+      document.getElementById('hackerScoreDisplay').textContent = hackerScore.toFixed(2);
+    }
+
+    displayCerts();
+    document.getElementById('htbScoreDisplay').textContent = scoreData.htb.toFixed(2);
+    document.getElementById('htbRankScoreDisplay').textContent = scoreData.htbRank;
+    updateHackerScore();
+  </script>
+</body>
+</html>
